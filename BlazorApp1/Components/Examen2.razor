@@ -1,0 +1,179 @@
+﻿@page "/productos"
+@using ExamenSegundaParcial.Pages
+@using System.ComponentModel.DataAnnotations
+@rendermode InteractiveServer
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+
+<PageTitle>Productos</PageTitle>
+
+<h1>Productos</h1>
+
+@if (!string.IsNullOrEmpty(mensajeError))
+{
+    <div class="alert alert-danger col-md-8">@mensajeError</div>
+}
+
+<EditForm Model="@itemActual" OnValidSubmit="GuardarCambios" class="col-md-8 mb-4">
+    <DataAnnotationsValidator />
+    <div class="mb-3">
+        <label class="form-label">Inventario</label>
+        <InputNumber @bind-Value="itemActual.Codigo" class="form-control" disabled="@modoEdicion" />
+        <ValidationMessage For="@(() => itemActual.Codigo)" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Nombre</label>
+        <InputText @bind-Value="itemActual.Titulo" class="form-control" />
+        <ValidationMessage For="@(() => itemActual.Titulo)" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Departamento</label>
+        <InputRadioGroup @bind-Value="itemActual.Area">
+            <div class="form-check form-check-inline">
+                <InputRadio Value="@("Frutas")" class="form-check-input" /> Frutas
+            </div>
+            <div class="form-check form-check-inline">
+                <InputRadio Value="@("Verduras")" class="form-check-input" /> Verduras
+            </div>
+            <div class="form-check form-check-inline">
+                <InputRadio Value="@("Lacteos")" class="form-check-input" /> Lacteos
+            </div>
+        </InputRadioGroup>
+        <ValidationMessage For="@(() => itemActual.Area)" />
+    </div>
+
+    @if (modoEdicion)
+    {
+        <button type="submit" class="btn btn-success">Actualizar</button>
+        <button type="button" class="btn btn-secondary" @onclick="CancelarEdicion">Cancelar</button>
+    }
+    else
+    {
+        <button type="submit" class="btn btn-primary">Guardar</button>
+    }
+</EditForm>
+
+@if (vistaResumen)
+{
+    <button class="btn btn-info mb-3" @onclick="MostrarLista">Listado</button>
+}
+else
+{
+    <button class="btn btn-info mb-3" @onclick="MostrarResumen">Existencias</button>
+}
+
+@if (vistaResumen)
+{
+    <div class="col-md-8">
+        <h3>Existencias por departamento</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Frutas</th>
+                    <th>Verduras</th>
+                    <th>Lacteos</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>@coleccionItems.Count(p => p.Area == "Frutas")</td>
+                    <td>@coleccionItems.Count(p => p.Area == "Verduras")</td>
+                    <td>@coleccionItems.Count(p => p.Area == "Lácteos")</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+}
+else if (coleccionItems.Any())
+{
+    <div class="col-md-8">
+        <h3>Listado de Productos</h3>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Inventario</th>
+                    <th>Nombre</th>
+                    <th>Departamento</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var elemento in coleccionItems)
+                {
+                    <tr>
+                        <td>@elemento.Codigo</td>
+                        <td>@elemento.Titulo</td>
+                        <td>@elemento.Area</td>
+                        <td class="text-center">
+                            <button class="btn btn-outline-danger btn-sm me-2" title="Eliminar" @onclick="() => BorrarItem(elemento)">
+                                <i class="bi bi-trash3-fill fs-5"></i>
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" title="Editar" @onclick="() => CargarItemParaEditar(elemento)">
+                                <i class="bi bi-pencil-square fs-5"></i>
+                            </button>
+                        </td>
+
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<Producto> coleccionItems = new List<Producto>();
+    private Producto itemActual = new Producto();
+    private bool modoEdicion = false;
+    private bool vistaResumen = false;
+    private string? mensajeError;
+
+    private void GuardarCambios()
+    {
+        mensajeError = null;
+        if (modoEdicion)
+        {
+            var existente = coleccionItems.FirstOrDefault(p => p.Codigo == itemActual.Codigo);
+            if (existente != null)
+            {
+                existente.Titulo = itemActual.Titulo;
+                existente.Area = itemActual.Area;
+            }
+            modoEdicion = false;
+        }
+        else
+        {
+            if (coleccionItems.Any(p => p.Codigo == itemActual.Codigo))
+            {
+                mensajeError = "El número de inventario se encuentra registrado. Debe ser único.";
+                return;
+            }
+            coleccionItems.Add(itemActual);
+        }
+        itemActual = new Producto();
+    }
+
+    private void CargarItemParaEditar(Producto itemEditar)
+    {
+        itemActual = new Producto
+        {
+            Codigo = itemEditar.Codigo,
+            Titulo = itemEditar.Titulo,
+            Area = itemEditar.Area
+        };
+        modoEdicion = true;
+    }
+
+    private void CancelarEdicion()
+    {
+        itemActual = new Producto();
+        modoEdicion = false;
+    }
+
+    private void BorrarItem(Producto itemEliminar)
+    {
+        coleccionItems.Remove(itemEliminar);
+    }
+
+    private void MostrarResumen() => vistaResumen = true;
+    private void MostrarLista() => vistaResumen = false;
+}
